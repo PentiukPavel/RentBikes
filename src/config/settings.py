@@ -1,5 +1,6 @@
 import os
 import sys
+from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -13,7 +14,7 @@ load_dotenv(dotenv_path)
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("SECRET_KEY", default="secret_key")
 
-DEBUG = True if os.getenv("DEBUG") in TRUE_VALUES else False
+DEBUG = True  # if os.getenv("DEBUG") in TRUE_VALUES else False
 
 if "test" in sys.argv:
     ALLOWED_HOSTS = ["testserver"]
@@ -30,6 +31,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework.authtoken",
     "rest_framework_simplejwt",
+    "drf_spectacular",
 ]
 
 MIDDLEWARE = [
@@ -44,10 +46,11 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "config.urls"
 
+TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [TEMPLATES_DIR],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -91,12 +94,17 @@ else:
 
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticated",
+        "rest_framework.permissions.AllowAny",
     ],
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=8),
+    "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
 SPECTACULAR_SETTINGS = {
