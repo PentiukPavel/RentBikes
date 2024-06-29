@@ -98,7 +98,7 @@ class RentsTests(TestRentsFixture):
         response = self.user_client.post(
             reverse("rents-complete", kwargs={"pk": self.rent_1.id})
         )
-        self.assertEqual(response.status_code, HTTPStatus.FORBIDDEN)
+        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
 
     def test_complete_rent(self):
         response = self.user_client_2.post(

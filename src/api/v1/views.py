@@ -1,4 +1,5 @@
-from django.shortcuts import get_object_or_404
+import sys
+
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import (
     mixins,
@@ -30,6 +31,7 @@ from bicycles.models import Bicycle, Brand
 from bicycles.services import rent_bike
 from core.enums import APIResponces
 from orders.models import Rent
+from orders.tasks import calculate_rent_cost
 
 
 @extend_schema(
@@ -122,7 +124,7 @@ class BicycleViewSet(
                 status=status.HTTP_423_LOCKED,
             )
 
-        bicycle: Bicycle = get_object_or_404(Bicycle, pk=kwargs["pk"])
+        bicycle: Bicycle = self.get_object()
         rent_bike(bicycle, renter)
         serializer = self.get_serializer(bicycle)
         return response.Response(serializer.data)
@@ -156,18 +158,21 @@ class RentViewSet(
         methods=("post",),
         url_path="complete",
         url_name="complete",
-        permission_classes=(IsRenter,),
+        permission_classes=[IsRenter],
     )
     def complete_this_rent(self, request, *args, **kwargs):
         """Завершить аренду."""
 
-        rent: Rent = get_object_or_404(Rent.cstm_mngr, pk=kwargs["pk"])
+        rent: Rent = self.get_object()
         if rent.end_time is not None:
             return response.Response(
                 data=APIResponces.RENT_ALREADY_COMPLETE.value,
                 status=status.HTTP_423_LOCKED,
             )
         rent.complete_rent()
-        rent.cost_calculation()
+        if "test" not in sys.argv:
+            calculate_rent_cost.delay(rent.id)
+        else:
+            rent.cost_calculation()
         serializer = self.get_serializer(rent)
         return response.Response(serializer.data)
