@@ -1,3 +1,6 @@
+from decimal import Decimal
+
+from django.core.validators import MinValueValidator
 from django.db import models
 
 from bicycles.managers import BicycleManager
@@ -18,9 +21,15 @@ class Brand(models.Model):
         null=True,
     )
     rental_price = models.DecimalField(
-        "Стоимость аренды в час",
+        "Цена аренды в час",
         max_digits=6,
         decimal_places=2,
+        validators=[
+            MinValueValidator(
+                Decimal(0),
+                "Цена не может быть меньше 0.",
+            ),
+        ],
     )
 
     class Meta:
@@ -40,6 +49,7 @@ class Bicycle(models.Model):
         on_delete=models.PROTECT,
         verbose_name="Марка Велосипеда",
         db_index=True,
+        related_name="bicycles",
     )
     available = models.BooleanField(
         "Доступен",
