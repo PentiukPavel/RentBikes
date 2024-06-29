@@ -3,6 +3,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
 from bicycles.models import Bicycle, Brand
+from orders.models import Rent
 
 User = get_user_model()
 
@@ -33,3 +34,14 @@ class BicycleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Bicycle
         fields = ("id", "brand", "available")
+
+
+class RentGetSerializer(serializers.ModelSerializer):
+    """Сериализатор для получения информации об аренде."""
+
+    renter = serializers.StringRelatedField()
+    bicycle = BicycleSerializer()
+
+    class Meta:
+        model = Rent
+        fields = ("id", "renter", "bicycle", "start_time", "end_time")

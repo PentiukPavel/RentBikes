@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import (
     mixins,
@@ -8,6 +9,7 @@ from rest_framework import (
     views,
     viewsets,
 )
+from rest_framework.decorators import action
 
 from api.v1.schemes import (
     BICYCLE_GET_EXAMPLE,
@@ -20,9 +22,13 @@ from api.v1.schemes import (
 from api.v1.serializers import (
     BicycleSerializer,
     BrandGetSerializer,
+    RentGetSerializer,
     UserCreateSerializer,
 )
 from bicycles.models import Bicycle, Brand
+from bicycles.services import rent_bike
+from core.enums import APIResponces
+from orders.models import Rent
 
 
 @extend_schema(
@@ -78,13 +84,81 @@ class BrandViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 )
 @extend_schema_view(
     list=extend_schema(summary="Список велосипедов"),
+    retrieve=extend_schema(summary="Информация о велосипеде"),
 )
-class BicycleViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+class BicycleViewSet(
+    mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet
+):
     """Доступные Велосипеды."""
 
-    serializer_class = BicycleSerializer
     pagination_class = pagination.LimitOffsetPagination
     permission_classes = (permissions.IsAuthenticated,)
+    serializer_class = BicycleSerializer
 
     def get_queryset(self):
         return Bicycle.cstm_mngr.filter(available=True)
+
+    @extend_schema(
+        summary="Арендовать велосипед",
+        methods=["POST"],
+        request=None,
+    )
+    @action(
+        detail=True,
+        methods=("post",),
+        url_path="rent",
+        url_name="rent",
+        permission_classes=(permissions.IsAuthenticated,),
+    )
+    def rent(self, request, *args, **kwargs):
+        """Арендовать велосипед."""
+
+        # проверяем есть ли у пользователя незавершенные аренды
+        renter = self.request.user
+        if Rent.cstm_mngr.filter(renter=renter, end_time=None).exists:
+            return response.Response(
+                data=APIResponces.UNFINISHED_RENTS_EXISTS.value
+            )
+
+        bicicle: Bicycle = get_object_or_404(Bicycle, pk=kwargs["pk"])
+        rent_bike(bicicle, renter)
+        serializer = self.get_serializer(bicicle)
+        return response.Response(serializer.data)
+
+
+@extend_schema(
+    tags=["Rents"],
+)
+@extend_schema_view(
+    list=extend_schema(summary="Список аренд пользователя"),
+    retrieve=extend_schema(summary="Информация об аренде"),
+)
+class RentViewSet(
+    mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet
+):
+    """Аренды."""
+
+    permission_classes = (permissions.IsAuthenticated,)
+    serializer_class = RentGetSerializer
+
+    def get_queryset(self):
+        return Rent.cstm_mngr.filter(renter=self.request.user)
+
+    @extend_schema(
+        summary="Завершить аренду",
+        methods=["POST"],
+        request=None,
+    )
+    @action(
+        detail=True,
+        methods=("post",),
+        url_path="complete",
+        url_name="complete",
+        permission_classes=(permissions.IsAuthenticated,),
+    )
+    def complete_this_rent(self, request, *args, **kwargs):
+        """Завершить аренду."""
+
+        rent: Rent = get_object_or_404(Rent.cstm_mngr, pk=kwargs["pk"])
+        rent.complete_rent()
+        rent.cost_calculation()
