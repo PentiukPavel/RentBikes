@@ -12,6 +12,8 @@ PASSWORD = "example"
 
 
 class UserFactory(DjangoModelFactory):
+    """Фабрика для создания экземпляров модели Пользователь."""
+
     class Meta:
         model = User
 

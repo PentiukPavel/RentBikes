@@ -3,6 +3,7 @@ from http import HTTPStatus
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
+from bicycles.models import Bicycle, Brand
 from core.fixtures import TestUserFixture
 from users.factories import PASSWORD
 
@@ -28,3 +29,24 @@ class TestUser(TestUserFixture):
         self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertTrue("access" in response.json())
         self.assertTrue("refresh" in response.json())
+
+
+class BicyclesTests(TestUserFixture):
+    def test_get_brands(self):
+        response = self.user_client.get(reverse("brands-list"))
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertEqual(len(response.json()), len(Brand.objects.all()))
+
+    def test_get_bicycles(self):
+        response = self.user_client.get(reverse("bicycles-list"))
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertEqual(
+            len(response.json()), len(Bicycle.objects.filter(available=True))
+        )
+
+    def test_anon_client_has_no_access(self):
+        response_1 = self.anon_client.get(reverse("brands-list"))
+        self.assertEqual(response_1.status_code, HTTPStatus.UNAUTHORIZED)
+
+        response_2 = self.anon_client.get(reverse("brands-list"))
+        self.assertEqual(response_2.status_code, HTTPStatus.UNAUTHORIZED)
