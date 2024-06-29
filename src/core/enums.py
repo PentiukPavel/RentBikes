@@ -16,3 +16,4 @@ class APIResponces(Enum):
     """
 
     UNFINISHED_RENTS_EXISTS = "Существуют незавершенные аренды."
+    RENT_ALREADY_COMPLETE = "Аренда уже завершена."

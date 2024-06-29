@@ -11,6 +11,7 @@ from rest_framework import (
 )
 from rest_framework.decorators import action
 
+from api.v1.permissions import IsRenter
 from api.v1.schemes import (
     BICYCLE_GET_EXAMPLE,
     BICYCLE_GET_200,
@@ -115,14 +116,15 @@ class BicycleViewSet(
 
         # проверяем есть ли у пользователя незавершенные аренды
         renter = self.request.user
-        if Rent.cstm_mngr.filter(renter=renter, end_time=None).exists:
+        if Rent.cstm_mngr.filter(renter=renter, end_time=None).exists():
             return response.Response(
-                data=APIResponces.UNFINISHED_RENTS_EXISTS.value
+                data=APIResponces.UNFINISHED_RENTS_EXISTS.value,
+                status=status.HTTP_423_LOCKED,
             )
 
-        bicicle: Bicycle = get_object_or_404(Bicycle, pk=kwargs["pk"])
-        rent_bike(bicicle, renter)
-        serializer = self.get_serializer(bicicle)
+        bicycle: Bicycle = get_object_or_404(Bicycle, pk=kwargs["pk"])
+        rent_bike(bicycle, renter)
+        serializer = self.get_serializer(bicycle)
         return response.Response(serializer.data)
 
 
@@ -138,7 +140,7 @@ class RentViewSet(
 ):
     """Аренды."""
 
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (IsRenter,)
     serializer_class = RentGetSerializer
 
     def get_queryset(self):
@@ -154,11 +156,18 @@ class RentViewSet(
         methods=("post",),
         url_path="complete",
         url_name="complete",
-        permission_classes=(permissions.IsAuthenticated,),
+        permission_classes=(IsRenter,),
     )
     def complete_this_rent(self, request, *args, **kwargs):
         """Завершить аренду."""
 
         rent: Rent = get_object_or_404(Rent.cstm_mngr, pk=kwargs["pk"])
+        if rent.end_time is not None:
+            return response.Response(
+                data=APIResponces.RENT_ALREADY_COMPLETE.value,
+                status=status.HTTP_423_LOCKED,
+            )
         rent.complete_rent()
         rent.cost_calculation()
+        serializer = self.get_serializer(rent)
+        return response.Response(serializer.data)

@@ -4,7 +4,12 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 
 from bicycles.models import Bicycle, Brand
-from core.fixtures import TestUserFixture
+from core.fixtures import (
+    TestBicyclesFixture,
+    TestRentsFixture,
+    TestUserFixture,
+)
+from orders.models import Rent
 from users.factories import PASSWORD
 
 User = get_user_model()
@@ -31,7 +36,7 @@ class TestUser(TestUserFixture):
         self.assertTrue("refresh" in response.json())
 
 
-class BicyclesTests(TestUserFixture):
+class BicyclesTests(TestBicyclesFixture):
     def test_get_brands(self):
         response = self.user_client.get(reverse("brands-list"))
         self.assertEqual(response.status_code, HTTPStatus.OK)
@@ -50,3 +55,59 @@ class BicyclesTests(TestUserFixture):
 
         response_2 = self.anon_client.get(reverse("brands-list"))
         self.assertEqual(response_2.status_code, HTTPStatus.UNAUTHORIZED)
+
+    def test_rent_bike(self):
+        response = self.user_client.post(
+            reverse("bicycles-rent", kwargs={"pk": self.bicycle_1.id})
+        )
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertTrue(
+            Rent.objects.filter(
+                renter=self.user, bicycle=self.bicycle_1
+            ).exists()
+        )
+
+        # проверяем, что нельзя арендовать второй велосипед
+        response_2 = self.user_client.post(
+            reverse("bicycles-rent", kwargs={"pk": self.bicycle_2.id})
+        )
+        self.assertEqual(response_2.status_code, HTTPStatus.LOCKED)
+
+    def test_anon_client_can_not_rent_bike(self):
+        response = self.anon_client.post(
+            reverse("bicycles-rent", kwargs={"pk": self.bicycle_2.id})
+        )
+        self.assertEqual(response.status_code, HTTPStatus.UNAUTHORIZED)
+
+
+class RentsTests(TestRentsFixture):
+    def test_get_rents(self):
+        response = self.user_client_2.get(reverse("rents-list"))
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertEqual(
+            len(response.json()), len(Rent.objects.filter(renter=self.user_2))
+        )
+
+    def test_anon_client_can_not_complete_rent(self):
+        response = self.anon_client.post(
+            reverse("rents-complete", kwargs={"pk": self.rent_1.id})
+        )
+        self.assertEqual(response.status_code, HTTPStatus.UNAUTHORIZED)
+
+    def test_only_renter_can_complete_rent(self):
+        response = self.user_client.post(
+            reverse("rents-complete", kwargs={"pk": self.rent_1.id})
+        )
+        self.assertEqual(response.status_code, HTTPStatus.FORBIDDEN)
+
+    def test_complete_rent(self):
+        response = self.user_client_2.post(
+            reverse("rents-complete", kwargs={"pk": self.rent_1.id})
+        )
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+
+        # проверяем, что аренду нельзя закрыть дважды
+        response_2 = self.user_client_2.post(
+            reverse("rents-complete", kwargs={"pk": self.rent_1.id})
+        )
+        self.assertEqual(response_2.status_code, HTTPStatus.LOCKED)

@@ -46,6 +46,7 @@ class Rent(models.Model):
                 "Стоимость не может быть меньше 0.",
             ),
         ],
+        null=True,
     )
 
     objects = models.Manager()
@@ -72,6 +73,7 @@ class Rent(models.Model):
         if self.end_time is not None:
             delta: timedelta = self.end_time - self.start_time
             self.cost = (
-                delta.seconds / 3600 + 1
-            ) * self.bicycle.brand.rental_price
+                Decimal(delta.seconds / 3600 + 1)
+                * self.bicycle.brand.rental_price
+            )
             self.save()
