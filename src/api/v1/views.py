@@ -173,6 +173,6 @@ class RentViewSet(
         if "test" not in sys.argv:
             calculate_rent_cost.delay(rent.id)
         else:
-            rent.cost_calculation()
-        serializer = self.get_serializer(rent)
+            rent.cost_calculation(rent.id)
+        serializer = self.get_serializer()
         return response.Response(serializer.data)

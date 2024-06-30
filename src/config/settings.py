@@ -21,6 +21,10 @@ if "test" in sys.argv:
 else:
     ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", default="*").split(", ")
 
+CSRF_TRUSTED_ORIGINS = os.getenv(
+    "CSRF_TRUSTED_ORIGINS", "http://127.0.0.1"
+).split(", ")
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",

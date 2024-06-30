@@ -66,6 +66,7 @@ class BicyclesTests(TestBicyclesFixture):
                 renter=self.user, bicycle=self.bicycle_1
             ).exists()
         )
+        self.assertFalse(Bicycle.objects.get(id=self.bicycle_1.id).available)
 
         # проверяем, что нельзя арендовать второй велосипед
         response_2 = self.user_client.post(
