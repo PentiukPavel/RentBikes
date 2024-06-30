@@ -1,9 +1,10 @@
-from datetime import timedelta, datetime
+from datetime import timedelta
 
 from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
 from django.db import models, transaction
+from django.utils import timezone
 
 from bicycles.models import Bicycle
 from orders.managers import RentManager
@@ -63,7 +64,7 @@ class Rent(models.Model):
         """Завершить аренду."""
 
         with transaction.atomic():
-            self.end_time = datetime.now()
+            self.end_time = timezone.now()
             self.bicycle.make_available()
 
     def cost_calculation(self) -> None:
