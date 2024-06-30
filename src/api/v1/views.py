@@ -1,5 +1,3 @@
-import sys
-
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import (
     mixins,
@@ -31,7 +29,6 @@ from bicycles.models import Bicycle, Brand
 from bicycles.services import rent_bike
 from core.enums import APIResponces
 from orders.models import Rent
-from orders.tasks import calculate_rent_cost
 
 
 @extend_schema(
@@ -170,9 +167,6 @@ class RentViewSet(
                 status=status.HTTP_423_LOCKED,
             )
         rent.complete_rent()
-        if "test" not in sys.argv:
-            calculate_rent_cost.delay(rent.id)
-        else:
-            rent.cost_calculation()
-        serializer = self.get_serializer()
+        rent.cost_calculation()
+        serializer = self.get_serializer(rent)
         return response.Response(serializer.data)

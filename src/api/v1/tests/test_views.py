@@ -106,6 +106,8 @@ class RentsTests(TestRentsFixture):
             reverse("rents-complete", kwargs={"pk": self.rent_1.id})
         )
         self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertIsNotNone(Rent.objects.get(id=self.rent_1.id).end_time)
+        self.assertIsNotNone(Rent.objects.get(id=self.rent_1.id).cost)
 
         # проверяем, что аренду нельзя закрыть дважды
         response_2 = self.user_client_2.post(
