@@ -1,6 +1,6 @@
 # RentBikes
 Бекэнд для сервиса по аренде велосипедов"</br>
-[![Tests](https://github.com/PentiukPavel/RentBikes/actions/workflows/tests.yaml/badge.svg)](https://github.com/PentiukPavel/RentBikes/actions/workflows/tests.yaml/)
+[![RentBike](https://github.com/PentiukPavel/RentBikes/actions/workflows/rent_bike.yaml/badge.svg)](https://github.com/PentiukPavel/RentBikes/actions/workflows/rent_bike.yaml/)
 
 ## Описание
 Приложение для аренды велоспиедов
